@@ -1,10 +1,10 @@
-# 🧠 Neural Vision — Image Classifier Web App
+#  Neural Vision — Image Classifier Web App
 
 FastAPI + TensorFlow/Keras image classifier with a clean dark terminal UI.
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 image_classifier_app/
@@ -23,7 +23,7 @@ image_classifier_app/
 
 ---
 
-## ⚙️ Setup & Run
+##  Setup & Run
 
 ```bash
 # 1. Drop your model files in the root folder
@@ -41,7 +41,7 @@ Open → **http://localhost:8000**
 
 ---
 
-## 🔁 How It Works
+##  How It Works
 
 1. User drops/selects an image in the browser
 2. JS sends a `POST /predict` with `FormData` (field: `image`)
@@ -51,7 +51,7 @@ Open → **http://localhost:8000**
 
 ---
 
-## 📊 Model Details
+##  Model Details
 
 | Model   | Input    | Classes | Notes          |
 |---------|----------|---------|----------------|
