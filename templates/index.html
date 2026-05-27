@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Classifier — Deep Learning</title>
+
+  <!-- Static CSS served by FastAPI at /static/css/style.css -->
+  <link rel="stylesheet" href="/static/css/style.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+</head>
+<body>
+
+<!-- ── Grid overlay (decorative) ─────────────────────────────── -->
+<div class="grid-overlay" aria-hidden="true"></div>
+
+<!-- ── Page wrapper ──────────────────────────────────────────── -->
+<div class="page">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-left">
+      <span class="logo-bracket">[</span>
+      <span class="logo-text">IMG_CLASSIFIER</span>
+      <span class="logo-bracket">]</span>
+    </div>
+    <div class="header-right">
+      <span class="tag">v1.0.0</span>
+      <span class="tag">{{ dataset }}</span>
+      <span class="tag">{{ num_classes }} classes</span>
+      <span class="tag">{{ input_size }}px</span>
+      {% if demo_mode %}
+      <span class="tag tag--warn">DEMO MODE</span>
+      {% else %}
+      <span class="tag tag--ok">MODEL LOADED</span>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ── Left column: upload ── -->
+    <section class="panel panel--upload">
+      <div class="panel-label">// INPUT</div>
+
+      <h1 class="hero-title">
+        Image<br />
+        <span class="accent">Classification</span>
+      </h1>
+      <p class="hero-sub">
+        Upload an image and the neural network will predict its class
+        using a trained Keras CNN model.
+      </p>
+
+      <!-- Upload form — JS intercepts submit, sends to /predict via fetch -->
+      <form id="uploadForm" novalidate>
+
+        <!-- Drop zone -->
+        <div class="drop-zone" id="dropZone" tabindex="0" role="button"
+             aria-label="Click or drag to upload an image">
+          <input type="file" id="fileInput" name="image"
+                 accept=".png,.jpg,.jpeg,.webp,.bmp" hidden />
+
+          <div class="drop-idle" id="dropIdle">
+            <svg class="drop-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <rect x="6" y="10" width="36" height="28" rx="3"
+                    stroke="currentColor" stroke-width="1.5" />
+              <circle cx="17" cy="19" r="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M6 32l10-8 7 6 6-5 13 9" stroke="currentColor"
+                    stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M24 4v12M20 8l4-4 4 4" stroke="currentColor"
+                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="drop-primary">Drop image here</p>
+            <p class="drop-secondary">or <span class="link" id="browseLink">browse files</span></p>
+            <p class="drop-hint">PNG, JPG, WEBP, BMP — max 10 MB</p>
+          </div>
+
+          <div class="drop-preview" id="dropPreview" hidden>
+            <img id="previewThumb" src="" alt="Selected image" />
+            <div class="drop-preview-info">
+              <span id="previewName" class="drop-filename"></span>
+              <span id="previewSize" class="drop-filesize"></span>
+            </div>
+            <button type="button" class="drop-clear" id="clearBtn"
+                    aria-label="Remove selected file">✕</button>
+          </div>
+        </div>
+
+        <!-- Error banner -->
+        <div class="alert alert--error" id="errorAlert" hidden role="alert">
+          <span class="alert-icon">⚠</span>
+          <span id="errorText"></span>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn-classify" id="submitBtn" disabled>
+          <span class="btn-label" id="btnLabel">Select an image first</span>
+          <span class="btn-spinner" id="btnSpinner" hidden>
+            <svg class="spinner-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor"
+                      stroke-width="2" stroke-dasharray="40" stroke-dashoffset="20"/>
+            </svg>
+            Classifying...
+          </span>
+        </button>
+
+      </form>
+
+      <!-- Model info strip -->
+      <div class="info-strip">
+        <div class="info-item">
+          <span class="info-key">dataset</span>
+          <span class="info-val">{{ dataset }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-key">input</span>
+          <span class="info-val">{{ input_size }}px</span>
+        </div>
+        <div class="info-item">
+          <span class="info-key">classes</span>
+          <span class="info-val">{{ num_classes }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-key">backend</span>
+          <span class="info-val">TF/Keras</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Right column: results ── -->
+    <section class="panel panel--results" id="resultsPanel">
+
+      <!-- Empty state -->
+      <div class="results-empty" id="resultsEmpty">
+        <div class="panel-label">// OUTPUT</div>
+        <div class="empty-inner">
+          <div class="terminal-block">
+            <span class="t-prompt">$&gt;</span>
+            <span class="t-text"> awaiting input<span class="cursor">_</span></span>
+          </div>
+          <p class="empty-hint">Results will appear here after classification</p>
+        </div>
+      </div>
+
+      <!-- Results card (hidden until prediction runs) -->
+      <div class="results-card" id="resultsCard" hidden>
+        <div class="panel-label">// OUTPUT</div>
+
+        <!-- Image preview -->
+        <div class="result-image-wrap">
+          <img id="resultImage" src="" alt="Classified image" />
+          <div class="result-image-overlay">CLASSIFIED</div>
+        </div>
+
+        <!-- Top prediction -->
+        <div class="prediction-block">
+          <div class="pred-meta">TOP PREDICTION</div>
+          <div class="pred-label" id="resultLabel">—</div>
+
+          <!-- Confidence bar -->
+          <div class="conf-row">
+            <span class="conf-key">CONFIDENCE</span>
+            <span class="conf-val" id="resultConf">0%</span>
+          </div>
+          <div class="conf-bar-wrap">
+            <div class="conf-bar-fill" id="confBar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Top-5 breakdown -->
+        <div class="top5-block">
+          <div class="top5-title">TOP-5 BREAKDOWN</div>
+          <div id="top5List" class="top5-list"></div>
+        </div>
+
+        <!-- Demo mode warning -->
+        <div class="alert alert--warn" id="demoAlert" hidden>
+          <span class="alert-icon">ℹ</span>
+          Demo mode — place your <code>cifar10_model.keras</code> or
+          <code>mnist_model.keras</code> in the app folder for real predictions.
+        </div>
+
+        <!-- Classify another -->
+        <button class="btn-again" id="againBtn">
+          ↩ Classify Another Image
+        </button>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <span>Project 13 — Image Classification · Deep Learning</span>
+    <span>TensorFlow / Keras · FastAPI</span>
+  </footer>
+
+</div>
+
+<!-- Static JS served by FastAPI at /static/js/app.js -->
+<script src="/static/js/app.js"></script>
+</body>
+</html>
